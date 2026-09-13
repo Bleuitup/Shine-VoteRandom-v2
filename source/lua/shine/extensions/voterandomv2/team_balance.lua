@@ -256,6 +256,111 @@ do
 		end
 	}
 
+	--[[
+		VoteRandom v2: breaks down how GetHiveSkill arrives at a commander's value, for the shuffle skill log.
+
+		Returns nil unless the player is a commander whose commander skill would be used, following the same
+		conditions as GetHiveSkill above. Keep the two in step: the log flags any disagreement between this
+		breakdown and the value the shuffle actually used.
+	]]
+	function BalanceModule:GetCommanderSkillBreakdown( Ply, TeamNumber )
+		if not self:IsCommanderSkillEnabled() then return nil end
+		if not ( Ply.GetCommanderSkill and Ply:isa( "Commander" ) and Ply:GetTeamNumber() == TeamNumber ) then
+			return nil
+		end
+
+		local CommanderSkill = Ply:GetCommanderSkill() or -1
+		if CommanderSkill < 0 then return nil end
+
+		local TeamSkillEnabled = self:IsPerTeamSkillEnabled()
+		local Options = self:GetBalanceModeConfig()
+		local BlendType = Options and Options[ CommanderSkillBlendFields[ TeamNumber ] ]
+			or Plugin.CommanderSkillBlendType.COMMANDER_ONLY
+
+		local Breakdown = {
+			CommanderSkill = GetPlayerTeamSkill(
+				TeamSkillEnabled and TeamNumber or 0,
+				CommanderSkill,
+				Ply:GetCommanderSkillOffset() or 0
+			),
+			FieldSkill = GetFieldPlayerSkill( Ply, TeamNumber, TeamSkillEnabled ),
+			BlendType = BlendType
+		}
+
+		local Blender = CommanderSkillBlenders[ BlendType ]
+		if Blender and Breakdown.FieldSkill then
+			Breakdown.Expected = Blender( Breakdown.CommanderSkill, Breakdown.FieldSkill )
+		else
+			Breakdown.Expected = Breakdown.CommanderSkill
+		end
+
+		return Breakdown
+	end
+
+	-- VoteRandom v2: whole numbers without a decimal, anything else to one decimal place.
+	local function FormatSkill( Value )
+		return ( string.format( "%.1f", Value ):gsub( "%.0$", "" ) )
+	end
+
+	--[[
+		VoteRandom v2: logs the skill value a Hive shuffle used for each player, and each team's resulting
+		average, so shuffles can be checked afterwards (the scoreboard doesn't show these).
+
+		Values come from the same ranking function (ApplyConfigToRankingFunction) and averaging function
+		(GetAverageSkillFunc) the shuffle itself uses, so they match what it decided on. Logged at INFO, so
+		setting the plugin's LogLevel to WARN or above silences it.
+	]]
+	function BalanceModule:LogShuffleSkills( TeamMembers )
+		local Logger = self.Logger
+		if not Logger or not Logger:IsInfoEnabled() then return end
+
+		local RankFunc = self:ApplyConfigToRankingFunction( self.SkillGetters.GetHiveSkill )
+
+		Logger:Info( "Shuffle skill log. Team skills are %s. Commander skills are %s.",
+			self:IsPerTeamSkillEnabled() and "enabled" or "disabled",
+			self:IsCommanderSkillEnabled() and "enabled" or "disabled" )
+
+		local Averages = {}
+		for TeamNumber = 1, 2 do
+			local Players = TeamMembers[ TeamNumber ]
+			local Stats = GetAverageSkillFunc( Players, RankFunc, TeamNumber )
+			local StandardDeviation = math.StandardDeviation( Stats.Skills )
+			Averages[ TeamNumber ] = Stats.Average
+
+			Logger:Info( "%s: %d player%s, %d counted. Average skill %s, standard deviation %s.",
+				Shine:GetTeamName( TeamNumber, true ), #Players, #Players == 1 and "" or "s",
+				Stats.Count, FormatSkill( Stats.Average ), FormatSkill( StandardDeviation ) )
+
+			for i = 1, #Players do
+				local Ply = Players[ i ]
+				local Client = GetClientForPlayer( Ply )
+				local Name = Client and Shine.GetClientInfo( Client )
+					or ( Ply.GetName and Ply:GetName() ) or "<unknown>"
+				local Skill = RankFunc( Ply, TeamNumber )
+
+				if Skill == nil then
+					Logger:Info( "    %s: no skill value (bot), not counted.", Name )
+				else
+					local Breakdown = self:GetCommanderSkillBreakdown( Ply, TeamNumber )
+					if Breakdown then
+						local Mismatch = Abs( Breakdown.Expected - Skill ) > 0.001
+						Logger:Info( "    %s: %s (commander: commander skill %s, field skill %s, blend: %s)%s",
+							Name, FormatSkill( Skill ), FormatSkill( Breakdown.CommanderSkill ),
+							Breakdown.FieldSkill and FormatSkill( Breakdown.FieldSkill ) or "none",
+							self.CommanderSkillBlendDescriptions[ Breakdown.BlendType ] or tostring( Breakdown.BlendType ),
+							Mismatch and string.format(
+								" WARNING: this breakdown gives %s, not the value used", FormatSkill( Breakdown.Expected )
+							) or "" )
+					else
+						Logger:Info( "    %s: %s", Name, FormatSkill( Skill ) )
+					end
+				end
+			end
+		end
+
+		Logger:Info( "Difference between team averages: %s.", FormatSkill( Abs( Averages[ 1 ] - Averages[ 2 ] ) ) )
+	end
+
 	if DebugMode then
 		local OldGetHiveSkill = BalanceModule.SkillGetters.GetHiveSkill
 		BalanceModule.SkillGetters.GetHiveSkill = function( Ply, TeamNumber, TeamSkillEnabled, CommanderSkillEnabled, Options )

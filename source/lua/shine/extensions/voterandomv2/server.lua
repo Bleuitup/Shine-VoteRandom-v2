@@ -1142,6 +1142,12 @@ function Plugin:ShuffleTeams( ResetScores, ForceMode )
 	local ModeFunction = self.ShufflingModes[ Mode ]
 	ModeFunction( self, Gamerules, Targets, TeamMembers )
 
+	-- VoteRandom v2: log the skill value used for each player and the team averages this shuffle produced.
+	-- Commander skill blending only applies to Hive shuffles, so other modes aren't logged.
+	if Mode == self.ShuffleMode.HIVE then
+		self:LogShuffleSkills( TeamMembers )
+	end
+
 	local FunctionSource = DebugGetInfo( ModeFunction, "S" ).source
 	-- VoteRandom v2: this plugin's own path, so another mod replacing the algorithm is still detected.
 	local IsExpectedFunction = FunctionSource == "@lua/shine/extensions/voterandomv2/team_balance.lua"

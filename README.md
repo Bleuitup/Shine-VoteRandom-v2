@@ -61,6 +61,31 @@ matter when `BalanceMode` is `HIVE` and `UseCommanderSkill` is on.
 choice each team uses. Please don't remove that: players should be able to tell that the shuffle differs
 from Shine's own, and where to report problems.
 
+## Shuffle skill log
+
+Every Hive skill shuffle writes the numbers it used to the server log, since the scoreboard doesn't show
+them. For each team it logs the average skill, the standard deviation and every player's skill value.
+For commanders it also logs their commander skill, field skill and blend. It ends with the difference
+between the two team averages:
+
+```
+[Info] Shuffle skill log. Team skills are enabled. Commander skills are enabled.
+[Info] Marines: 3 players, 2 counted. Average skill 1800, standard deviation 200.
+[Info]     MarineComm[1001]: 2000 (commander: commander skill 2000, field skill 1300, blend: average of commander and field skill, only when field skill is higher)
+[Info]     MarineA[1002]: 1600
+[Info]     Bot[1003]: no skill value (bot), not counted.
+[Info] Aliens: 2 players, 2 counted. Average skill 1500, standard deviation 550.
+[Info]     AlienComm[1004]: 2050 (commander: commander skill 1600, field skill 2500, blend: average of commander and field skill)
+[Info]     AlienB[1005]: 950
+[Info] Difference between team averages: 300.
+```
+
+The values are the exact numbers the shuffle compared, including each team's skill adjustment when team
+skills are enabled. Bots have no skill value and don't count toward the averages.
+
+To turn the log off, run `sh_setloglevel voterandomv2 WARN` in the server console, or set `"LogLevel"` to
+`"WARN"` in `VoteRandomV2.json`. That also hides this plugin's other informational messages.
+
 ## Known limitations
 
 - **Vote menu button.** The Shuffle button in the vote menu works exactly as with Shine's shuffle, but

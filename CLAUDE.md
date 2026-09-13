@@ -56,6 +56,21 @@ The first commit is an unmodified import (Shine develop + the blending branch), 
     algorithm is still detected.
   - `HookVoteMenu` / `UnhookVoteMenu` / `Cleanup`, called from `Initialise` (see below).
   - Two lines at the top of `sh_teamstats` output disclosing that v2 is running.
+  - `ShuffleTeams` calls `LogShuffleSkills( TeamMembers )` right after the mode function when the mode is
+    HIVE.
+- `team_balance.lua`: the shuffle skill log, inside the Hive skill helper `do` block so it can use its
+  private helpers:
+  - `GetCommanderSkillBreakdown` repeats `GetHiveSkill`'s commander conditions to report commander skill,
+    field skill, blend type and the value those should produce.
+  - `FormatSkill` prints whole numbers without a decimal.
+  - `LogShuffleSkills` logs at INFO through the plugin logger (`self.Logger`, from Shine's `logger.lua`
+    module, so `LogLevel` / `sh_setloglevel voterandomv2 WARN` silences it). Per-player values come from
+    `ApplyConfigToRankingFunction( SkillGetters.GetHiveSkill )` and team averages from
+    `GetAverageSkillFunc`, the same functions the shuffle uses. If the breakdown ever disagrees with the
+    value used, the line ends with a `WARNING` rather than hiding the difference. Values are computed
+    just after the shuffle has moved players. With `IgnoreCommanders` on (the default) commanders stay
+    put, so the numbers are exact; with it off, a commander moved to the other team is no longer a
+    commander and may log a different value from the one the optimizer weighed.
 
 Changes to the blending feature itself are **not** marked `VoteRandom v2`, because they belong to the
 upstream proposal rather than to running separately. So far that's one: `sh_teamstats` describes the
@@ -116,6 +131,12 @@ it's a syntax check only).
 `server.lua` and runs them against a stubbed Shine: 14 checks, including that the `voterandom`
 substitution never leaks outside the vote menu call, survives an error inside Shine's send, and is fully
 undone by `Cleanup`. If you rename or restructure those functions, keep the harness's extraction working.
+
+`lua test/shuffle_skill_log.lua` (add `-v` to print the log) extracts `GetAverageSkillFunc`, the Hive
+skill helper `do` block and `ApplyConfigToRankingFunction` from the shipped `team_balance.lua` and runs
+`LogShuffleSkills` on mock teams: 13 checks covering team offsets, both commander blends, a bot, averages,
+commander skills disabled, the mismatch `WARNING` path and a logger below INFO. The extraction relies on
+those code landmarks, so keep it working if you move them.
 
 There is no standalone harness for the rest of the plugin: it needs Shine's runtime. The blending
 arithmetic is the same code verified 12/12 in `Shuffle-Mk-II/test/blend.lua`.
