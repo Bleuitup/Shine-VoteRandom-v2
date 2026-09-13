@@ -54,6 +54,12 @@ The first commit is an unmodified import (Shine develop + the blending branch), 
   - `HookVoteMenu` / `UnhookVoteMenu` / `Cleanup`, called from `Initialise` (see below).
   - Two lines at the top of `sh_teamstats` output disclosing that v2 is running.
 
+Changes to the blending feature itself are **not** marked `VoteRandom v2`, because they belong to the
+upstream proposal rather than to running separately. So far that's one: `sh_teamstats` describes the
+blend settings in plain words (`CommanderSkillBlendDescriptions`, one line per team, plus a note when
+commander skills are disabled) instead of printing the raw config values. The upstream patch branch in
+the `Shine` clone still has the older one-line wording; bring it in line before proposing it.
+
 Deliberately **not** changed, to keep the diff small: commands and chat aliases (drop-in for players),
 `PrintName`, `Version` (`2.13`, matching the upstream change), `RandomEndTimer` (plugin timers are
 namespaced per plugin already), all balancing code.
