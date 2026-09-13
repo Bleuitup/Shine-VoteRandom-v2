@@ -70,16 +70,25 @@ Checked 2026-09-13 against Shine Workshop `117887554` and every mod on NS2 Sudam
 - **Shine's vote menu** (`core/server/votemenu.lua` `BuildPluginData`, client `votemenu_gui.lua`
   `PluginNames`) only shows Shuffle when a plugin named `voterandom` is enabled. **Server side fixed:**
   `HookVoteMenu` wraps `Shine.SendPluginData` and answers `IsExtensionEnabled( "voterandom" )` with this
-  plugin *only for the duration of that call*. **Client side not fixed:** the client calls
-  `IsExtensionEnabled( "voterandom" )` to get `GetVoteButtonText` / `OnVoteButtonCreated`, so the button
-  shows the plain label without the team-preference indicator. A global client alias was rejected: Shine's
-  client config menu and plugin dependency checks ask the same question and would be misled.
+  plugin *only for the duration of that call*. **Client side not yet fixed:** when building the Main page
+  the client calls `IsExtensionEnabled( "voterandom" )` to get `GetVoteButtonText` /
+  `OnVoteButtonCreated`, so on first draw the button lacks the team-preference label and, when
+  `IsVoteForAutoShuffle`, reads the core "Shuffle" phrase instead of "Enable/Disable Shuffle" (the click
+  is unaffected: it runs `sh_voterandom` either way). Later changes are fine: `NetworkUpdate` finds the
+  button by label via `GetButtonByPlugin( "Shuffle" )` and rewrites text and tooltip itself. A global
+  client alias was rejected: Shine's client config menu and plugin dependency checks ask the same
+  question and would be misled. The clean fix, offered to the author on 2026-09-13 but not built, is
+  Shine's own `Shine.VoteMenu:EditPage( "Main", ExtraPopulate )` from `client.lua`, applying v2's text,
+  tooltip and `OnVoteButtonCreated` to the Shuffle side button. Note `GetButtonByPlugin` returns nil
+  unless `ActivePage == "Main"`, so check that during populate or walk `Buttons.Side` directly.
 - **Devnull - [Shine] Extras / enhancedscoreboard** (`2608952840`) reads
   `Shine.Plugins.voterandom:GetTeamStats()` when voterandom is enabled. With v2 it shows nothing. **Never
   make `IsExtensionEnabled( "voterandom" )` return true globally:** the scoreboard would then call
   Shine's *disabled* voterandom, which has no config loaded, and throw.
-- **Shine-Lockteams / lockteamsv2** (the author's own) uses `Shine.Plugins.voterandom` for skill when
-  enabled, else its own calculation. Updating it to prefer `voterandomv2` is a change in that repo.
+- **Shine-Lockteams / lockteamsv2** (the author's own): the *published* version (`3730361484`) doesn't
+  reference voterandom at all. The unpublished auto-adjusting version in the repo uses
+  `Shine.Plugins.voterandom` for skill when enabled, else its own calculation. The author decided not to
+  change it for v2 for now, so it isn't listed as a limitation in `README.md`.
 - Shine-Epsilon's `botmanager`, `disablevanillavotes`, `enforceteamsizes`, `hiveteamrestriction` only
   mention voterandom in comments / vanilla vote names.
 
@@ -116,5 +125,5 @@ around it in the mod or with server settings. Testers can disable such client mo
 
 ## Credits wording
 
-The Credits section of `README.md` is a draft awaiting the author's approval. Don't change attribution
+The Credits section of `README.md` was approved by the author on 2026-09-13. Don't change attribution
 wording without asking.

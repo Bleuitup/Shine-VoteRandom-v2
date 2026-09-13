@@ -62,13 +62,12 @@ from Shine's own, and where to report problems.
 
 ## Known limitations
 
-- **Vote menu button.** The Shuffle button in the vote menu works, but shows the plain "Shuffle" label.
-  Shine's shuffle also shows a player's team preference next to that button and an auto-shuffle label;
-  those don't appear with VoteRandom v2.
+- **Vote menu button.** The Shuffle button in the vote menu works exactly as with Shine's shuffle, but
+  when the menu opens it doesn't show the player's team preference next to it. On servers that
+  auto-shuffle every round, it also first reads "Shuffle" instead of "Enable Shuffle" or "Disable
+  Shuffle", even though clicking it votes to turn automatic shuffling on or off for the next round.
 - **Devnull's Enhanced Scoreboard** reads team skill from Shine's shuffle plugin by name, so its team
   skill figures won't show while VoteRandom v2 is running.
-- **[Shine] Lockteams V2** asks Shine's shuffle plugin for player skill by name. With VoteRandom v2
-  running it uses its own skill calculation instead, without the new blending.
 - **Not yet whitelisted.** While any non-whitelisted mod is mounted, NS2 stops checking players' client
   mods, and players running a client mod that registers network messages (for example Devnull's Enhanced
   Hud) get disconnected with "Invalid data". This is an NS2 bug, reported to UWE, and affects any
@@ -80,8 +79,6 @@ Experimental, and not yet tested in a live round.
 
 ## Credits
 
-> **DRAFT: needs Bleu's approval before publishing.**
->
-> VoteRandom v2 is Shine's shuffle plugin (`voterandom`), by Person8880, from
-> [Shine](https://github.com/Person8880/Shine), with per-team commander skill blending added. The team
-> balancing is entirely Person8880's work.
+VoteRandom v2 is Shine's shuffle plugin (`voterandom`), by Person8880, from
+[Shine](https://github.com/Person8880/Shine), with per-team commander skill blending added. The team
+balancing is entirely Person8880's work.
