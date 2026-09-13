@@ -25,6 +25,7 @@ Standard NS2 Launch Pad project layout, matching the author's other mods. Launch
 ```
 source/lua/shine/extensions/voterandomv2/*.lua     the plugin (7 files, from voterandom)
 source/locale/shine/extensions/voterandomv2/*.json translations (7 files, verbatim from voterandom)
+test/votemenu_hook.lua                             standalone test for the vote menu hook, not shipped
 output/                                            Launch Pad build output, gitignored
 ```
 
@@ -91,8 +92,15 @@ Shine's `develop` on 2026-09-13. When Shine updates voterandom, merge those chan
 ## Testing
 
 `luac -p` every file (Lua 5.4 locally, while NS2 runs
-LuaJIT/5.1, so it's a syntax check only). There is no standalone harness for the full plugin: it needs
-Shine's runtime. The blending arithmetic is the same code verified 12/12 in `Shuffle-Mk-II/test/blend.lua`.
+LuaJIT/5.1, so it's a syntax check only).
+
+`lua test/votemenu_hook.lua` extracts `HookVoteMenu` / `UnhookVoteMenu` / `Cleanup` from the shipped
+`server.lua` and runs them against a stubbed Shine: 14 checks, including that the `voterandom`
+substitution never leaks outside the vote menu call, survives an error inside Shine's send, and is fully
+undone by `Cleanup`. If you rename or restructure those functions, keep the harness's extraction working.
+
+There is no standalone harness for the rest of the plugin: it needs Shine's runtime. The blending
+arithmetic is the same code verified 12/12 in `Shuffle-Mk-II/test/blend.lua`.
 
 A live test must cover: the conflict refusal while `voterandom` is enabled; the Shuffle button present in
 the vote menu; `sh_teamstats` showing the v2 lines and blend modes; a real shuffle; disabling v2
