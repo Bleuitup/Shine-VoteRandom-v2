@@ -1,10 +1,20 @@
 --[[
 	Shuffle plugin shared code.
+
+	VoteRandom v2: this plugin is a renamed copy of Shine's voterandom plugin, with per-team commander
+	skill blending added. It is packaged separately so the change can be tested on live servers before
+	being proposed for Shine itself. Every difference from Shine's voterandom is marked with a
+	"VoteRandom v2" comment.
 ]]
 
 local StringFormat = string.format
 
 local Plugin = Shine.Plugin( ... )
+
+-- VoteRandom v2: disabled until a server operator enables it. Without a default state, Shine never
+-- records the plugin in ActiveExtensions and re-loads it on every map change just to check.
+Plugin.DefaultState = false
+
 Plugin.NotifyPrefixColour = {
 	100, 255, 100
 }

@@ -1,5 +1,8 @@
 --[[
 	Shine vote random plugin.
+
+	VoteRandom v2: a renamed copy of Shine's voterandom plugin with per-team commander skill blending.
+	Differences from Shine's voterandom are marked with "VoteRandom v2" comments. See shared.lua.
 ]]
 
 local Shine = Shine
@@ -30,7 +33,16 @@ Plugin.Version = "2.13"
 Plugin.PrintName = "Shuffle"
 
 Plugin.HasConfig = true
-Plugin.ConfigName = "VoteRandom.json"
+-- VoteRandom v2: own config file, so it never reads or rewrites Shine's VoteRandom.json.
+Plugin.ConfigName = "VoteRandomV2.json"
+
+-- VoteRandom v2: both plugins register the same commands and shuffle the same teams, so refuse to
+-- enable while Shine's voterandom is enabled. The operator must disable voterandom first.
+Plugin.Conflicts = {
+	DisableUs = {
+		"voterandom"
+	}
+}
 
 Plugin.RandomEndTimer = "VoteRandomTimer"
 
@@ -565,7 +577,8 @@ function NoOpEnforcement:JoinTeam() end
 Shine.LoadPluginFile( PluginName, "team_balance.lua", Plugin, PluginName )
 Shine.LoadPluginFile( PluginName, "friend_groups.lua", Plugin, PluginName )
 
-local ModeError = [[Error in voterandom config, FallbackMode is not set as a valid option.
+-- VoteRandom v2: names this plugin's config rather than voterandom's.
+local ModeError = [[Error in voterandomv2 config, FallbackMode is not set as a valid option.
 Make sure BalanceMode and FallbackMode are not the same, and that FallbackMode is not "HIVE".
 Setting FallbackMode to "KDR" mode.]]
 
@@ -705,9 +718,65 @@ function Plugin:Initialise()
 
 	self:LoadFriendGroups()
 
+	-- VoteRandom v2: keep the Shuffle button in Shine's vote menu.
+	self:HookVoteMenu()
+
 	self.Enabled = true
 
 	return true
+end
+
+--[[
+	VoteRandom v2: Shine's vote menu only shows its Shuffle button when a plugin named exactly
+	"voterandom" is enabled (see BuildPluginData in Shine's core/server/votemenu.lua). While Shine
+	builds that list, answer "voterandom" with this plugin instead.
+
+	The substitution only lasts for the duration of that one call. Other code asking whether voterandom
+	is enabled still gets the truth, which matters: for example, Devnull's Enhanced Scoreboard would
+	otherwise call into Shine's disabled voterandom plugin, which has no config loaded.
+]]
+function Plugin:HookVoteMenu()
+	if self.OriginalSendPluginData or not Shine.SendPluginData then return end
+
+	local OriginalSendPluginData = Shine.SendPluginData
+	self.OriginalSendPluginData = OriginalSendPluginData
+
+	Shine.SendPluginData = function( ShineInstance, Player )
+		local IsExtensionEnabled = ShineInstance.IsExtensionEnabled
+		ShineInstance.IsExtensionEnabled = function( Instance, Name )
+			if Name == "voterandom" then
+				return true, self
+			end
+			return IsExtensionEnabled( Instance, Name )
+		end
+
+		local Success, Err = pcall( OriginalSendPluginData, ShineInstance, Player )
+		ShineInstance.IsExtensionEnabled = IsExtensionEnabled
+
+		if not Success then
+			error( Err, 0 )
+		end
+	end
+
+	-- Update anyone already connected, e.g. when enabled mid-map with sh_loadplugin.
+	Shine:SendPluginData( nil )
+end
+
+function Plugin:UnhookVoteMenu()
+	if not self.OriginalSendPluginData then return end
+
+	Shine.SendPluginData = self.OriginalSendPluginData
+	self.OriginalSendPluginData = nil
+
+	Shine:SendPluginData( nil )
+end
+
+-- VoteRandom v2: Shine's voterandom has no Cleanup of its own. This undoes the vote menu hook, then
+-- runs the default cleanup.
+function Plugin:Cleanup()
+	self:UnhookVoteMenu()
+
+	self.BaseClass.Cleanup( self )
 end
 
 function Plugin:ReceiveTeamPreference( Client, Data )
@@ -1067,7 +1136,8 @@ function Plugin:ShuffleTeams( ResetScores, ForceMode )
 	ModeFunction( self, Gamerules, Targets, TeamMembers )
 
 	local FunctionSource = DebugGetInfo( ModeFunction, "S" ).source
-	local IsExpectedFunction = FunctionSource == "@lua/shine/extensions/voterandom/team_balance.lua"
+	-- VoteRandom v2: this plugin's own path, so another mod replacing the algorithm is still detected.
+	local IsExpectedFunction = FunctionSource == "@lua/shine/extensions/voterandomv2/team_balance.lua"
 
 	self.OptimisingTeams = false
 	self.HasShuffledThisRound = true
@@ -1887,6 +1957,11 @@ function Plugin:CreateCommands()
 		local Message = {}
 
 		Message[ 1 ] = "Team stats:"
+
+		-- VoteRandom v2: say plainly that this is not Shine's own shuffle, and where to report problems.
+		Message[ #Message + 1 ] = "VoteRandom v2 is running in place of Shine's voterandom plugin."
+		Message[ #Message + 1 ] = "Shuffle results may differ from servers running Shine's own shuffle. "..
+			"Report shuffle problems to the VoteRandom v2 author, not to Shine."
 
 		for i = 1, 2 do
 			local Stats = TeamStats[ i ]
