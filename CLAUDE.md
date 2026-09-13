@@ -19,10 +19,13 @@ at runtime instead of copying it.
 
 ## Layout
 
-Standard NS2 Launch Pad project layout, matching the author's other mods. Launch Pad creates
-`mod.settings` and `preview.jpg` on publish, so neither is committed until then.
+Standard NS2 Launch Pad project layout, matching the author's other mods. Launch Pad wrote
+`mod.settings` and `preview.jpg` on first publish. Both are committed: `publish_id = 3801049022` in
+`mod.settings` is what makes a republish update the same Workshop item.
 
 ```
+mod.settings                                       Launch Pad publish settings (publish_id)
+preview.jpg                                        Workshop preview image
 source/lua/shine/extensions/voterandomv2/*.lua     the plugin (7 files, from voterandom)
 source/locale/shine/extensions/voterandomv2/*.json translations (7 files, verbatim from voterandom)
 test/votemenu_hook.lua                             standalone test for the vote menu hook, not shipped
@@ -106,8 +109,8 @@ Shine's `develop` on 2026-09-13. When Shine updates voterandom, merge those chan
 
 ## Testing
 
-`luac -p` every file (Lua 5.4 locally, while NS2 runs
-LuaJIT/5.1, so it's a syntax check only).
+`luac -p` every file with a standalone Lua interpreter (Lua 5.4 locally, while NS2 runs LuaJIT/5.1, so
+it's a syntax check only).
 
 `lua test/votemenu_hook.lua` extracts `HookVoteMenu` / `UnhookVoteMenu` / `Cleanup` from the shipped
 `server.lua` and runs them against a stubbed Shine: 14 checks, including that the `voterandom`

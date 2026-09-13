@@ -27,7 +27,8 @@ VoteRandom v2 replaces that option with one setting per team, each with three ch
 
 ## Installing
 
-1. Subscribe to the mod and add its Workshop ID to the `mods` list in your `MapCycle.json`.
+1. Subscribe to the mod on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3801049022)
+   and add its Workshop ID, `3801049022`, to the `mods` list in your `MapCycle.json`.
 2. In Shine's `BaseConfig.json`, under `ActiveExtensions`, **disable Shine's shuffle and enable this one**:
    ```json
    "voterandom": false,
@@ -75,7 +76,8 @@ from Shine's own, and where to report problems.
 
 ## Status
 
-Experimental, and not yet tested in a live round.
+Experimental. v0.9 is published to the Steam Workshop as `3801049022`, and its first live test is
+still to come.
 
 ## Credits
 
